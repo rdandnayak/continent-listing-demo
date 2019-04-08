@@ -20,6 +20,7 @@ html {
   width: 90%;
   float: none;
   margin: 0 auto;
+  padding-top: 10px;
 }
 
 .page-item {

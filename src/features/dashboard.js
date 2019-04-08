@@ -1,205 +1,193 @@
 import React, { Component } from 'react';
-import {
-  Card,
-  ListGroup,
-  ListGroupItem,
-  Pagination,
-  Col,
-  Alert,
-  Button,
-  Row
-} from 'react-bootstrap';
+import { Card, Button, Row } from 'react-bootstrap';
+import fetch from 'isomorphic-fetch';
 import { withRouter } from 'react-router-dom';
-import localforage from 'localforage';
 import Loader from 'react-loader-spinner';
+const { createApolloFetch } = require('apollo-fetch');
 
-const data = {
-  Search: [
-    {
-      Title: "One Flew Over the Cuckoo's Nest",
-      Year: '1975',
-      imdbID: 'tt0073486',
-      Type: 'movie',
-      Poster:
-        'https://m.media-amazon.com/images/M/MV5BZjA0OWVhOTAtYWQxNi00YzNhLWI4ZjYtNjFjZTEyYjJlNDVlL2ltYWdlL2ltYWdlXkEyXkFqcGdeQXVyMTQxNzMzNDI@._V1_SX300.jpg'
-    },
-    {
-      Title: 'Rogue One: A Star Wars Story',
-      Year: '2016',
-      imdbID: 'tt3748528',
-      Type: 'movie',
-      Poster:
-        'https://m.media-amazon.com/images/M/MV5BMjEwMzMxODIzOV5BMl5BanBnXkFtZTgwNzg3OTAzMDI@._V1_SX300.jpg'
-    },
-    {
-      Title: 'Ready Player One',
-      Year: '2018',
-      imdbID: 'tt1677720',
-      Type: 'movie',
-      Poster:
-        'https://m.media-amazon.com/images/M/MV5BY2JiYTNmZTctYTQ1OC00YjU4LWEwMjYtZjkwY2Y5MDI0OTU3XkEyXkFqcGdeQXVyNTI4MzE4MDU@._V1_SX300.jpg'
-    },
-    {
-      Title: 'Let the Right One In',
-      Year: '2008',
-      imdbID: 'tt1139797',
-      Type: 'movie',
-      Poster:
-        'https://m.media-amazon.com/images/M/MV5BM2Q1YWU3ZjgtMTE0Ny00MGRkLTljMDgtOWYwZDU2YmE2YmVmXkEyXkFqcGdeQXVyNzI1NzMxNzM@._V1_SX300.jpg'
-    },
-    {
-      Title: 'Air Force One',
-      Year: '1997',
-      imdbID: 'tt0118571',
-      Type: 'movie',
-      Poster:
-        'https://m.media-amazon.com/images/M/MV5BYTk5NWE2ZjAtZmRmOS00ZGYzLWI5ZmUtMDcwODI0YWY0MTRlL2ltYWdlXkEyXkFqcGdeQXVyNjQzNDI3NzY@._V1_SX300.jpg'
-    },
-    {
-      Title: 'One Day',
-      Year: '2011',
-      imdbID: 'tt1563738',
-      Type: 'movie',
-      Poster:
-        'https://m.media-amazon.com/images/M/MV5BMTQ3NTg2MDI3NF5BMl5BanBnXkFtZTcwMjc5MTA1NA@@._V1_SX300.jpg'
-    },
-    {
-      Title: 'One Hour Photo',
-      Year: '2002',
-      imdbID: 'tt0265459',
-      Type: 'movie',
-      Poster:
-        'https://m.media-amazon.com/images/M/MV5BYWVkMjAzY2QtZTA4Yi00OWZmLTliMzctZTkyODU4NTc3MmRjL2ltYWdlXkEyXkFqcGdeQXVyMTQxNzMzNDI@._V1_SX300.jpg'
-    },
-    {
-      Title: 'The Lucky One',
-      Year: '2012',
-      imdbID: 'tt1327194',
-      Type: 'movie',
-      Poster:
-        'https://m.media-amazon.com/images/M/MV5BMTg5NDk3MjAzMF5BMl5BanBnXkFtZTcwMjUyNzExNw@@._V1_SX300.jpg'
-    },
-    {
-      Title: 'Year One',
-      Year: '2009',
-      imdbID: 'tt1045778',
-      Type: 'movie',
-      Poster:
-        'https://m.media-amazon.com/images/M/MV5BMTcyMjI2OTgxN15BMl5BanBnXkFtZTcwODU3ODkzMg@@._V1_SX300.jpg'
-    },
-    {
-      Title: 'The One',
-      Year: '2001',
-      imdbID: 'tt0267804',
-      Type: 'movie',
-      Poster:
-        'https://m.media-amazon.com/images/M/MV5BNzY4YmUzMDAtMDYyZS00MTBmLWEzZDAtOGY3MDE2YjJkMGUxL2ltYWdlL2ltYWdlXkEyXkFqcGdeQXVyMTQxNzMzNDI@._V1_SX300.jpg'
-    }
-  ],
-  totalResults: '6710',
-  Response: 'True'
-};
+const fetchAPI = createApolloFetch({
+  uri: 'https://countries.trevorblades.com/graphql'
+});
 
 class Dashboard extends Component {
   constructor(props) {
     super(props);
     this.state = {
-      movies: [],
-      page: 1,
+      continents: [],
+      details: {},
       loader: false
     };
-    this.currentUrl = 'http://www.omdbapi.com/?s=one&page=1&apikey=87644019';
+    this.fetchContinent = this._fetchContinent();
   }
+  _fetchContinent = () => {
+    let abortController;
+    return (code, successCallback) => {
+      const query = `query {
+      continent(code: "${code}") {
+        code
+        name
+        countries {
+          name
+          native
+          phone
+          currency
+          emoji
+          emojiU
+        }
+      }
+    }`;
+      try {
+        if (abortController) {
+          abortController.abort();
+        }
+      } catch (ex) {
+        console.warn(ex);
+      }
+      abortController = new AbortController();
+      let signal = abortController.signal;
+      this.setState({ loader: true }, () => {
+        fetch('https://countries.trevorblades.com/graphql', {
+          method: 'POST',
+          signal,
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ query })
+        })
+          .then(res => res.json())
+          .then(res => {
+            this.setState({ loader: false });
+            // console.log(res.data.continent);
+            successCallback(res.data.continent);
+          });
+      });
+    };
+  };
 
-  fetchMovieResults = page => {
+  fetchContinentDetails = () => {
     let self = this;
-
-    let email = JSON.parse(localStorage.getItem('currentUser')).email;
-    const userReviews = JSON.parse(localStorage.getItem('userReviews')) || {};
-    self.setState({ movies: userReviews[email] || [] });
-    // this.setState({ loader: true }, () => {
-    //   fetch(`http://www.omdbapi.com/?s=one&page=${page}&apikey=87644019`)
-    //     .then(function(response) {
-    //       if (response.status !== 200) {
-    //         console.log(
-    //           'Looks like there was a problem. Status Code: ' + response.status
-    //         );
-    //         return;
-    //       }
-
-    //       // Examine the text in the response
-    //       response.json().then(function(list) {
-    //         self.setState({ movies: list, page, loader: false });
-    //       });
-    //     })
-    //     .catch(function(err) {
-    //       console.log('Fetch Error :-S', err);
-    //     });
-    // });
+    const query = `{
+      continents {
+        code
+        name
+      }
+    }
+    `;
+    this.setState({ loader: true }, () => {
+      // self.setState({ continents: data.continents, page, loader: false });
+      fetchAPI({
+        query
+      }).then(res => {
+        self.setState({ continents: res.data.continents, loader: false });
+      });
+    });
   };
   componentDidMount() {
     let self = this;
-
-    this.fetchMovieResults(1);
+    this.fetchContinentDetails();
+    window.onbeforeunload = function(e) {
+      var e = e || window.event;
+      let msg = 'Do you really want to leave this page?';
+      self.setState({ details: {} });
+      // window.confirm(msg);
+      return msg;
+    };
   }
-  onPaginate = number => {
-    console.info(number);
-    this.fetchMovieResults(number);
-  };
   render() {
-    const { movies, loader } = this.state;
-    const { history } = this.props;
+    const { continents, loader, details } = this.state;
 
-    return (
-      <Row className={'exploreView'}>
-        {movies.length === 0 ? (
-          <Alert
-            style={{ marginTop: '30px' }}
-            show={this.state.show}
-            variant="success"
+    const detailsComponenent = continent => {
+      return (
+        <section>
+          <Button
+            onClick={() => {
+              this.setState({ details: {} });
+            }}
+            variant="primary"
           >
-            <Alert.Heading>How's it going?!</Alert.Heading>
-            <p>
-              Seems like you did not Explore, Review any movie yet. Please head
-              on to explore section
-            </p>
-            <hr />
-            <div className="d-flex justify-content-end">
-              <Button
-                onClick={() => {
-                  history.push('/explore');
-                }}
-                variant="outline-success"
-              >
-                Explore
-              </Button>
-            </div>
-          </Alert>
-        ) : (
-          movies &&
-          movies.map((movie, index) => {
+            Go Back
+          </Button>
+          <br />
+          <br />
+          <Card style={{ width: '100%' }}>
+            <Card.Header>
+              {continent.name} - {continent.code}
+            </Card.Header>
+            <Card.Body>
+              {continent.countries.map(country => {
+                return (
+                  <Card
+                    bg="secondary"
+                    text="white"
+                    style={{
+                      width: '18rem',
+                      float: 'left',
+                      marginRight: 20,
+                      marginBottom: 20
+                    }}
+                  >
+                    <Card.Header>
+                      {country.name} -{' '}
+                      <span style={{ fontSize: 20 }}>{country.emoji}</span>
+                    </Card.Header>
+                    <Card.Body>
+                      <Card.Text>
+                        Name: {country.name}
+                        <br />
+                        Native: {country.native}
+                        <br />
+                        Phone: {country.phone}
+                        <br />
+                        Currency: {country.currency}
+                      </Card.Text>
+                    </Card.Body>
+                  </Card>
+                );
+              })}
+            </Card.Body>
+          </Card>
+        </section>
+      );
+    };
+
+    let renderViews =
+      details && Object.keys(details).length === 0
+        ? continents &&
+          continents.map(continent => {
             return (
               <Card
-                key={index}
-                style={{ width: '18rem', margin: '20px', cursor: 'pointer' }}
-                onClick={() => {
-                  const id = movie.imdbID;
-                  history.push(`/details/${id}`);
+                key={continent.code}
+                style={{
+                  width: '18rem',
+                  margin: '20px',
+                  cursor: 'pointer'
                 }}
+                onClick={() =>
+                  this.fetchContinent(continent.code, details => {
+                    // history.push('/details/' + continent.code);
+                    this.setState({ details });
+                  })
+                }
               >
-                <Card.Img variant="top" src={movie.Poster} />
                 <Card.Body>
                   <Card.Title>
-                    {movie.Title} ({movie.Year})
+                    {continent.name} - ({continent.code})
                   </Card.Title>
                 </Card.Body>
-                <Card.Body>
-                  Rated By You <strong>{movie.rating}</strong>
-                </Card.Body>
+                <Card.Body />
               </Card>
             );
           })
+        : detailsComponenent(details);
+
+    return (
+      <Row className={'exploreView'}>
+        {loader ? (
+          <section style={{ position: 'fixed', left: 0 }}>
+            <Loader type="Puff" color="#000" height="100" width="100" />
+          </section>
+        ) : (
+          ''
         )}
+        {renderViews}
       </Row>
     );
   }
